@@ -181,6 +181,58 @@ app.post('/sites/:id/advies', async (req, res) => {
   res.render('site', { site, scans, taken, advies: advies || adviesFout });
 });
 
+// ---------- Ops room ----------
+app.get('/opsroom', async (req, res) => {
+  res.render('ops');
+});
+
+app.get('/api/ops', async (req, res) => {
+  const { rows: sites } = await pool.query(`
+    SELECT s.id, s.naam, s.url,
+      (SELECT score FROM scans sc WHERE sc.site_id = s.id AND sc.status = 'klaar' ORDER BY sc.id DESC LIMIT 1) AS score,
+      (SELECT score FROM scans sc WHERE sc.site_id = s.id AND sc.status = 'klaar' ORDER BY sc.id DESC OFFSET 1 LIMIT 1) AS vorige_score,
+      (SELECT created_at FROM scans sc WHERE sc.site_id = s.id AND sc.status = 'klaar' ORDER BY sc.id DESC LIMIT 1) AS laatste_scan,
+      (SELECT ok FROM uptime u WHERE u.site_id = s.id ORDER BY u.id DESC LIMIT 1) AS online,
+      (SELECT response_ms FROM uptime u WHERE u.site_id = s.id ORDER BY u.id DESC LIMIT 1) AS laatste_ms,
+      (SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE ok) / NULLIF(COUNT(*), 0), 1)
+         FROM uptime u WHERE u.site_id = s.id AND u.gemeten_op > now() - interval '24 hours') AS uptime_24u,
+      (SELECT COUNT(*) FROM taken t WHERE t.site_id = s.id AND NOT t.klaar) AS open_taken,
+      (SELECT COUNT(*) FROM taken t WHERE t.site_id = s.id AND NOT t.klaar AND t.prioriteit = 'hoog') AS taken_hoog
+    FROM sites s ORDER BY s.naam ASC
+  `);
+
+  // Sparkline-data: laatste 60 metingen per site
+  for (const s of sites) {
+    const { rows: metingen } = await pool.query(
+      `SELECT ok, response_ms FROM uptime WHERE site_id = $1 ORDER BY id DESC LIMIT 60`, [s.id]);
+    s.spark = metingen.reverse().map(m => ({ ok: m.ok, ms: m.response_ms }));
+  }
+
+  const { rows: [tot] } = await pool.query(`
+    SELECT
+      (SELECT COUNT(*) FROM scans WHERE created_at > now() - interval '24 hours' AND status = 'klaar') AS scans_24u,
+      (SELECT COUNT(*) FROM uptime WHERE gemeten_op > now() - interval '24 hours') AS checks_24u,
+      (SELECT COUNT(*) FROM taken WHERE NOT klaar) AS taken_open,
+      (SELECT COUNT(*) FROM taken WHERE klaar) AS taken_klaar
+  `);
+
+  const scores = sites.filter(s => s.score !== null).map(s => Number(s.score));
+  res.json({
+    tijd: new Date().toISOString(),
+    totaal: {
+      sites: sites.length,
+      online: sites.filter(s => s.online === true).length,
+      offline: sites.filter(s => s.online === false).length,
+      gemScore: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+      scans24u: Number(tot.scans_24u),
+      checks24u: Number(tot.checks_24u),
+      takenOpen: Number(tot.taken_open),
+      takenKlaar: Number(tot.taken_klaar)
+    },
+    sites
+  });
+});
+
 // Handmatig het dagrapport testen
 app.post('/rapport/test', async (req, res) => {
   const ok = await planner.verstuurRapport().catch(() => false);

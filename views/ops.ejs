@@ -1,0 +1,122 @@
+<%- include('partials/header', { titel: 'Ops Room' }) %>
+
+<div class="ops-kop">
+  <div>
+    <h1 class="ops-titel">⬢ OPS ROOM</h1>
+    <span class="mono klein">live overzicht · ververst elke 30s · <span id="klok">--:--:--</span></span>
+  </div>
+  <a href="/" class="mono link">← dashboard</a>
+</div>
+
+<section class="kpi-rij" id="kpis">
+  <div class="kpi"><span class="kpi-getal" id="k-gemscore">—</span><span class="kpi-label">gem. score</span></div>
+  <div class="kpi"><span class="kpi-getal groen-t" id="k-online">—</span><span class="kpi-label">online</span></div>
+  <div class="kpi"><span class="kpi-getal rood-t" id="k-offline">—</span><span class="kpi-label">offline</span></div>
+  <div class="kpi"><span class="kpi-getal oranje-t" id="k-taken">—</span><span class="kpi-label">open taken</span></div>
+  <div class="kpi"><span class="kpi-getal" id="k-scans">—</span><span class="kpi-label">scans 24u</span></div>
+  <div class="kpi"><span class="kpi-getal" id="k-checks">—</span><span class="kpi-label">checks 24u</span></div>
+</section>
+
+<div id="alarm" class="alarm" style="display:none"></div>
+
+<section class="ops-grid" id="ops-grid">
+  <p class="leeg">Data laden…</p>
+</section>
+
+<script>
+const KLEUR = s => s === null ? '#8b968e' : s >= 80 ? '#4ade80' : s >= 55 ? '#fbbf24' : '#f87171';
+
+function gauge(score) {
+  const r = 52, c = Math.PI * r; // halve cirkel
+  const pct = score === null ? 0 : score / 100;
+  return `
+  <svg viewBox="0 0 130 78" class="meter">
+    <path d="M 13 70 A ${r} ${r} 0 0 1 117 70" fill="none" stroke="#232a25" stroke-width="11" stroke-linecap="round"/>
+    <path d="M 13 70 A ${r} ${r} 0 0 1 117 70" fill="none" stroke="${KLEUR(score)}" stroke-width="11"
+          stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - pct)}"
+          style="transition: stroke-dashoffset .8s ease, stroke .8s ease"/>
+    <text x="65" y="62" text-anchor="middle" font-family="'Spline Sans Mono',monospace"
+          font-size="26" font-weight="700" fill="${KLEUR(score)}">${score ?? '—'}</text>
+    <text x="65" y="75" text-anchor="middle" font-family="'Spline Sans Mono',monospace"
+          font-size="7" fill="#8b968e" letter-spacing="1">SEO SCORE</text>
+  </svg>`;
+}
+
+function sparkline(punten) {
+  if (!punten || !punten.length) return '<div class="spark leeg-spark">geen metingen</div>';
+  const w = 200, h = 36, max = Math.max(...punten.map(p => p.ms || 0), 500);
+  const stap = punten.length > 1 ? w / (punten.length - 1) : w;
+  const lijn = punten.map((p, i) =>
+    `${(i * stap).toFixed(1)},${(h - 3 - ((p.ms || 0) / max) * (h - 8)).toFixed(1)}`).join(' ');
+  const stippen = punten.map((p, i) => p.ok ? '' :
+    `<circle cx="${(i * stap).toFixed(1)}" cy="${h - 5}" r="2.5" fill="#f87171"/>`).join('');
+  return `
+  <svg viewBox="0 0 ${w} ${h}" class="spark" preserveAspectRatio="none">
+    <polyline points="${lijn}" fill="none" stroke="#7cf29c" stroke-width="1.5" opacity=".8"/>
+    ${stippen}
+  </svg>
+  <span class="mono spark-label">responstijd laatste uur · max ${max} ms</span>`;
+}
+
+function siteKaart(s) {
+  const delta = (s.score !== null && s.vorige_score !== null) ? s.score - s.vorige_score : null;
+  const deltaHtml = delta === null ? '' :
+    `<span class="delta ${delta > 0 ? 'groen-t' : delta < 0 ? 'rood-t' : ''}">${delta > 0 ? '▲ +' + delta : delta < 0 ? '▼ ' + delta : '—'}</span>`;
+  const offline = s.online === false;
+  return `
+  <a href="/sites/${s.id}" class="ops-kaart ${offline ? 'offline-kaart' : ''}">
+    <div class="ops-kaart-kop">
+      <div>
+        <span class="ops-naam">${s.naam}</span>
+        <span class="mono klein ops-url">${s.url.replace(/^https?:\/\//, '')}</span>
+      </div>
+      <span class="lamp ${s.online === null ? '' : s.online ? 'lamp-groen' : 'lamp-rood'}"></span>
+    </div>
+    <div class="ops-midden">
+      ${gauge(s.score)}
+      <div class="ops-cijfers mono">
+        <div><span class="c-label">Δ score</span>${deltaHtml || '<span class="dim-t">—</span>'}</div>
+        <div><span class="c-label">uptime 24u</span><span class="${s.uptime_24u === null ? 'dim-t' : s.uptime_24u >= 99 ? 'groen-t' : s.uptime_24u >= 95 ? 'oranje-t' : 'rood-t'}">${s.uptime_24u !== null ? s.uptime_24u + '%' : '—'}</span></div>
+        <div><span class="c-label">respons</span><span>${s.laatste_ms !== null ? s.laatste_ms + ' ms' : '—'}</span></div>
+        <div><span class="c-label">taken</span><span class="${Number(s.taken_hoog) > 0 ? 'rood-t' : Number(s.open_taken) > 0 ? 'oranje-t' : 'groen-t'}">${s.open_taken} <small>(${s.taken_hoog} hoog)</small></span></div>
+      </div>
+    </div>
+    <div class="ops-spark">${sparkline(s.spark)}</div>
+  </a>`;
+}
+
+async function laad() {
+  try {
+    const r = await fetch('/api/ops');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('k-gemscore').textContent = d.totaal.gemScore ?? '—';
+    document.getElementById('k-gemscore').style.color = KLEUR(d.totaal.gemScore);
+    document.getElementById('k-online').textContent = d.totaal.online + '/' + d.totaal.sites;
+    document.getElementById('k-offline').textContent = d.totaal.offline;
+    document.getElementById('k-taken').textContent = d.totaal.takenOpen;
+    document.getElementById('k-scans').textContent = d.totaal.scans24u;
+    document.getElementById('k-checks').textContent = d.totaal.checks24u;
+
+    const offline = d.sites.filter(s => s.online === false);
+    const alarm = document.getElementById('alarm');
+    if (offline.length) {
+      alarm.style.display = 'block';
+      alarm.textContent = '⚠ ALARM — OFFLINE: ' + offline.map(s => s.naam).join(', ');
+    } else {
+      alarm.style.display = 'none';
+    }
+
+    document.getElementById('ops-grid').innerHTML =
+      d.sites.length ? d.sites.map(siteKaart).join('') : '<p class="leeg">Nog geen sites toegevoegd.</p>';
+  } catch (e) { /* volgende poging over 30s */ }
+}
+
+setInterval(() => {
+  document.getElementById('klok').textContent = new Date().toLocaleTimeString('nl-NL');
+}, 1000);
+laad();
+setInterval(laad, 30000);
+</script>
+
+<%- include('partials/footer') %>
