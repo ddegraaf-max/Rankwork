@@ -3,7 +3,8 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const { pool, init } = require('./db');
-const { scanSite, genereerTaken, normalizeBase } = require('./lib/scanner');
+const { scanSite, normalizeBase } = require('./lib/scanner');
+const { verwerkTaken } = require('./lib/taken');
 const { seoAdvies, aiBeschikbaar } = require('./lib/ai');
 const auth = require('./lib/auth');
 const planner = require('./lib/planner');
@@ -110,14 +111,8 @@ app.post('/sites/:id/scan', async (req, res) => {
            VALUES ($1, $2, $3, $4, $5, $6)`,
           [scan.id, p.url, p.status_code, p.response_ms, p.score, JSON.stringify(p.checks)]);
       }
-      // Taken bijwerken (bestaande titels niet dupliceren)
-      for (const t of genereerTaken(result)) {
-        await pool.query(
-          `INSERT INTO taken (site_id, titel, detail, prioriteit)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (site_id, titel) DO UPDATE SET detail = EXCLUDED.detail, klaar = false`,
-          [site.id, t.titel, t.detail, t.prioriteit]);
-      }
+      // Taken bijwerken: upsert per check_id, geslaagde checks automatisch afvinken
+      await verwerkTaken(site.id, result);
     } catch (e) {
       console.error('Scanfout:', e);
       await pool.query(`UPDATE scans SET status = 'fout', fout = $1, finished_at = now() WHERE id = $2`,

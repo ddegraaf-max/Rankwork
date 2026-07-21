@@ -66,6 +66,12 @@ async function init() {
       UNIQUE (site_id, titel)
     );
   `);
+  // Migratie: stabiele check_id per taak (voor upsert + auto-afvinken bij herscan)
+  await pool.query(`
+    ALTER TABLE taken ADD COLUMN IF NOT EXISTS check_id TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS taken_site_check
+      ON taken (site_id, check_id) WHERE check_id IS NOT NULL;
+  `);
   console.log('✅ Database-schema gereed');
 }
 
