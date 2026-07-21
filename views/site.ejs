@@ -1,0 +1,94 @@
+<%- include('partials/header', { titel: site.naam }) %>
+
+<div class="broodkruimel mono"><a href="/">← dashboard</a></div>
+
+<section class="site-kop">
+  <div>
+    <h1><%= site.naam %></h1>
+    <a href="<%= site.url %>" target="_blank" rel="noopener" class="mono url"><%= site.url %> ↗</a>
+  </div>
+  <div class="kop-acties">
+    <form method="POST" action="/sites/<%= site.id %>/scan">
+      <button type="submit" class="knop groot">▶ Scan starten</button>
+    </form>
+    <% if (aiBeschikbaar && scans.some(s => s.status === 'klaar')) { %>
+      <form method="POST" action="/sites/<%= site.id %>/advies">
+        <button type="submit" class="knop secundair">✦ AI-advies</button>
+      </form>
+    <% } %>
+  </div>
+</section>
+
+<section class="paneel">
+  <h2 class="paneel-titel">Zoekwoorden</h2>
+  <form method="POST" action="/sites/<%= site.id %>/zoekwoorden" class="toevoeg-form">
+    <input type="text" name="zoekwoorden" value="<%= site.zoekwoorden %>" placeholder="bijv. dakkapel plaatsen, dakkapel prijs">
+    <button type="submit" class="knop secundair">Opslaan</button>
+  </form>
+</section>
+
+<% if (advies) { %>
+<section class="paneel advies">
+  <h2 class="paneel-titel">✦ AI-actieplan</h2>
+  <pre class="advies-tekst"><%= advies %></pre>
+</section>
+<% } %>
+
+<section class="paneel" id="taken">
+  <h2 class="paneel-titel">Taken (<%= taken.filter(t => !t.klaar).length %> open)</h2>
+  <form method="POST" action="/sites/<%= site.id %>/taken" class="toevoeg-form">
+    <input type="text" name="titel" placeholder="Eigen taak toevoegen…">
+    <select name="prioriteit">
+      <option value="hoog">hoog</option>
+      <option value="middel" selected>middel</option>
+      <option value="laag">laag</option>
+    </select>
+    <button type="submit" class="knop secundair">+</button>
+  </form>
+  <ul class="taken-lijst">
+    <% if (!taken.length) { %><li class="leeg">Nog geen taken — start een scan.</li><% } %>
+    <% taken.forEach(t => { %>
+      <li class="taak <%= t.klaar ? 'klaar' : '' %>">
+        <form method="POST" action="/taken/<%= t.id %>/toggle">
+          <button type="submit" class="check" title="Afvinken"><%= t.klaar ? '✓' : '' %></button>
+        </form>
+        <div class="taak-body">
+          <span class="taak-titel"><%= t.titel %></span>
+          <% if (t.detail) { %><span class="taak-detail"><%= t.detail %></span><% } %>
+        </div>
+        <span class="prio prio-<%= t.prioriteit %>"><%= t.prioriteit %></span>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+
+<section class="paneel" id="scans">
+  <h2 class="paneel-titel">Scans</h2>
+  <table class="tabel">
+    <thead><tr><th>Datum</th><th>Status</th><th>Score</th><th></th></tr></thead>
+    <tbody>
+      <% if (!scans.length) { %><tr><td colspan="4" class="leeg">Nog geen scans.</td></tr><% } %>
+      <% scans.forEach(sc => { const k = scoreKleur(sc.score); %>
+        <tr>
+          <td class="mono"><%= new Date(sc.created_at).toLocaleString('nl-NL') %></td>
+          <td>
+            <% if (sc.status === 'bezig') { %><span class="badge pulse">bezig… (ververs de pagina)</span>
+            <% } else if (sc.status === 'fout') { %><span class="badge rood-badge" title="<%= sc.fout %>">fout</span>
+            <% } else { %><span class="badge groen-badge">klaar</span><% } %>
+          </td>
+          <td><span class="mini-score <%= k %>"><%= sc.score ?? '—' %></span></td>
+          <td><% if (sc.status === 'klaar') { %><a class="mono link" href="/scans/<%= sc.id %>">details →</a><% } %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<section class="paneel gevaar">
+  <form method="POST" action="/sites/<%= site.id %>/verwijderen"
+        onsubmit="return confirm('Site en alle scans/taken verwijderen?');">
+    <button type="submit" class="knop verwijder">Site verwijderen</button>
+  </form>
+</section>
+
+<%- include('partials/footer') %>

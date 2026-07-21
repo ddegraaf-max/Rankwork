@@ -1,0 +1,30 @@
+<%- include('partials/header', { titel: 'Inloggen' }) %>
+
+<section class="login-vak">
+  <h1 class="login-titel">Toegang</h1>
+  <% if (fout) { %><div class="melding rood-rand"><%= fout %></div><% } %>
+
+  <% if (stap === 'wachtwoord') { %>
+    <form method="POST" action="/login" class="login-form">
+      <input type="password" name="wachtwoord" placeholder="Wachtwoord" required autofocus>
+      <button type="submit" class="knop">Verder</button>
+    </form>
+
+  <% } else if (stap === 'setup') { %>
+    <p class="login-uitleg">Eerste keer: scan deze QR-code met je authenticator-app (Google Authenticator, Authy, 1Password) en vul daarna de 6-cijferige code in.</p>
+    <img src="<%= qr %>" alt="TOTP QR-code" class="qr">
+    <p class="mono klein">Handmatig invoeren: <%= secret %></p>
+    <form method="POST" action="/login/code" class="login-form">
+      <input type="text" name="code" placeholder="000000" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+      <button type="submit" class="knop">2FA activeren</button>
+    </form>
+
+  <% } else { %>
+    <form method="POST" action="/login/code" class="login-form">
+      <input type="text" name="code" placeholder="6-cijferige code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+      <button type="submit" class="knop">Inloggen</button>
+    </form>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,56 @@
+<%- include('partials/header', { titel: 'Dashboard' }) %>
+
+<section class="hero">
+  <h1>Al je sites.<br>Eén missie: <em>hoger.</em></h1>
+  <p class="hero-sub">Voeg een site toe, scan hem, en werk de takenlijst af tot alles op groen staat.</p>
+</section>
+
+<% if (fout) { %><div class="melding rood-rand"><%= fout %></div><% } %>
+
+<section class="paneel">
+  <h2 class="paneel-titel">+ Site toevoegen</h2>
+  <form method="POST" action="/sites" class="toevoeg-form">
+    <input type="text" name="url" placeholder="https://voorbeeld.nl" required>
+    <input type="text" name="naam" placeholder="Naam (optioneel)">
+    <input type="text" name="zoekwoorden" placeholder="Zoekwoorden, komma-gescheiden (optioneel)">
+    <button type="submit" class="knop">Toevoegen</button>
+  </form>
+</section>
+
+<section class="sites-grid">
+  <% if (!sites.length) { %>
+    <p class="leeg">Nog geen sites. Voeg hierboven je eerste site toe.</p>
+  <% } %>
+  <% sites.forEach(s => { const k = scoreKleur(s.laatste_score); %>
+    <a href="/sites/<%= s.id %>" class="site-kaart">
+      <div class="score-blok <%= k %>">
+        <span class="score-getal"><%= s.laatste_score ?? '—' %></span>
+        <span class="score-label">score</span>
+      </div>
+      <div class="site-info">
+        <h3><%= s.naam %></h3>
+        <span class="mono url"><%= s.url.replace(/^https?:\/\//, '') %></span>
+        <div class="site-meta">
+          <% if (s.online !== null) { %>
+            <span class="status-dot <%= s.online ? 'online' : 'offline' %>"
+                  title="<%= s.online ? 'Online' : 'OFFLINE' %>"></span>
+            <span class="mono klein"><%= s.online ? 'online' : 'OFFLINE!' %><%= s.uptime_24u !== null ? ' · ' + s.uptime_24u + '% (24u)' : '' %></span>
+          <% } %>
+          <% if (s.open_taken > 0) { %><span class="badge"><%= s.open_taken %> open taken</span><% } %>
+          <% if (s.laatste_scan) { %><span class="mono klein">gescand <%= new Date(s.laatste_scan).toLocaleString('nl-NL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) %></span>
+          <% } else { %><span class="mono klein">nog niet gescand</span><% } %>
+        </div>
+      </div>
+    </a>
+  <% }) %>
+</section>
+
+<section class="paneel dashboard-acties">
+  <span class="mono klein">Planner: uptime-check elke minuut · elke site automatisch gescand (min. 1×/uur) · dagrapport per e-mail</span>
+  <div class="actie-knoppen">
+    <form method="POST" action="/rapport/test"><button type="submit" class="knop secundair">📧 Rapport nu testen</button></form>
+    <form method="POST" action="/uitloggen"><button type="submit" class="knop verwijder">Uitloggen</button></form>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

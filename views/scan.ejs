@@ -1,0 +1,56 @@
+<%- include('partials/header', { titel: 'Scan — ' + site.naam }) %>
+
+<div class="broodkruimel mono">
+  <a href="/">dashboard</a> / <a href="/sites/<%= site.id %>"><%= site.naam %></a> / scan #<%= scan.id %>
+</div>
+
+<section class="site-kop">
+  <div>
+    <h1>Scanresultaat</h1>
+    <span class="mono url"><%= new Date(scan.created_at).toLocaleString('nl-NL') %> · <%= pages.length %> pagina's</span>
+  </div>
+  <div class="score-blok groot-blok <%= scoreKleur(scan.score) %>">
+    <span class="score-getal"><%= scan.score %></span>
+    <span class="score-label">sitescore</span>
+  </div>
+</section>
+
+<% const sc = scan.site_checks || {}; %>
+<section class="paneel">
+  <h2 class="paneel-titel">Site-niveau</h2>
+  <ul class="check-lijst">
+    <li class="<%= sc.https ? 'ok' : 'nok' %>"><span class="dot"></span> HTTPS</li>
+    <li class="<%= sc.robots ? 'ok' : 'nok' %>"><span class="dot"></span> robots.txt</li>
+    <li class="<%= sc.sitemap ? 'ok' : 'nok' %>"><span class="dot"></span> sitemap.xml
+      <% if (sc.sitemap) { %><span class="mono klein">(<%= sc.sitemapAantal %> URL's)</span><% } %></li>
+    <li class="<%= sc.favicon ? 'ok' : 'nok' %>"><span class="dot"></span> favicon</li>
+    <% if (sc.robotsBlokkeertAlles) { %>
+      <li class="nok"><span class="dot"></span> ⚠ robots.txt blokkeert de hele site!</li>
+    <% } %>
+  </ul>
+</section>
+
+<% pages.forEach(p => { const checks = p.checks || []; %>
+<section class="paneel pagina-paneel">
+  <div class="pagina-kop">
+    <span class="mini-score <%= scoreKleur(p.score) %>"><%= p.score %></span>
+    <div class="pagina-url">
+      <a href="<%= p.url %>" target="_blank" rel="noopener" class="mono link"><%= p.url.replace(/^https?:\/\/[^\/]+/, '') || '/' %> ↗</a>
+      <span class="mono klein">HTTP <%= p.status_code %> · <%= p.response_ms %> ms</span>
+    </div>
+  </div>
+  <ul class="check-lijst compact">
+    <% checks.forEach(c => { %>
+      <li class="<%= c.ok ? 'ok' : 'nok' %>">
+        <span class="dot"></span>
+        <div class="check-body">
+          <span><%= c.label %> <span class="mono klein"><%= c.detail %></span></span>
+          <% if (!c.ok && c.fix) { %><span class="fix">→ <%= c.fix %></span><% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+<% }) %>
+
+<%- include('partials/footer') %>
