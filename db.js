@@ -72,6 +72,11 @@ async function init() {
     CREATE UNIQUE INDEX IF NOT EXISTS taken_site_check
       ON taken (site_id, check_id) WHERE check_id IS NOT NULL;
   `);
+  // Opruimen: open taken over Cloudflare-systeemURL's (/cdn-cgi/) — die worden niet meer gescand
+  const { rowCount } = await pool.query(
+    `DELETE FROM taken WHERE NOT klaar
+       AND (check_id LIKE '%/cdn-cgi/%' OR titel LIKE '%/cdn-cgi/%')`);
+  if (rowCount > 0) console.log(`🧹 ${rowCount} open /cdn-cgi/-taken opgeruimd`);
   console.log('✅ Database-schema gereed');
 }
 
