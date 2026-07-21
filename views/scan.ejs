@@ -10,7 +10,7 @@
     <span class="mono url"><%= new Date(scan.created_at).toLocaleString('nl-NL') %> · <%= pages.length %> pagina's</span>
   </div>
   <div class="score-blok groot-blok <%= scoreKleur(scan.score) %>">
-    <span class="score-getal"><%= scan.score %></span>
+    <span class="score-getal"><%= scan.score ?? "—" %></span>
     <span class="score-label">sitescore</span>
   </div>
 </section>
