@@ -4,8 +4,9 @@ SEO-controlekamer voor al je sites. Voeg sites toe, scan ze automatisch, krijg e
 
 ## Wat het doet
 
-- **Scanner**: crawlt max 15 pagina's per site (via sitemap.xml, anders interne links) en controleert per pagina: title, meta description, H1, canonical, noindex, lang, viewport, Open Graph, structured data (JSON-LD), alt-teksten, contentlengte, interne links, laadtijd en HTTP-status.
-- **Site-niveau**: HTTPS, robots.txt, sitemap.xml, favicon, en waarschuwt als robots.txt de hele site blokkeert.
+- **Scanner**: crawlt max 15 pagina's per site (via sitemap.xml, anders interne links) en controleert per pagina: title, meta description, H1, canonical (incl. verwijst-naar-eigen-site), noindex (meta én X-Robots-Tag header), lang, viewport, Open Graph (title/description/image), structured data (JSON-LD, incl. geldigheidscheck), kopstructuur, alt-teksten, contentlengte, interne links, mixed content, compressie, laadtijd en HTTP-status.
+- **Site-niveau**: HTTPS, robots.txt, sitemap.xml, favicon (ook via `<link rel="icon">`), echte 404-pagina (soft-404-detectie), http→https-redirect, www-consistentie, dubbele titles/descriptions over pagina's heen, en waarschuwt als robots.txt de hele site blokkeert.
+- **Core Web Vitals**: per scan wordt de homepage door de Google PageSpeed Insights API gehaald (mobiel): performance-score, LCP, CLS en INP — velddata (CrUX) als die er is, anders labdata. Werkt zonder key; met een gratis `PAGESPEED_API_KEY` is de quota ruimer.
 - **Score 0–100** per pagina en per site, met kleurcodering (groen/oranje/rood).
 - **Takenlijst**: elke scan genereert automatisch taken met prioriteit; afvinken en eigen taken toevoegen kan.
 - **AI-actieplan** (optioneel): met een `ANTHROPIC_API_KEY` maakt Claude na elke scan automatisch een concreet Nederlands actieplan en zet het uitvoerbare werk als AI-taken klaar.
@@ -53,3 +54,4 @@ DATABASE_URL=postgres://... node server.js
 | `RAPPORT_UUR` | optioneel | Uur van verzending (standaard 7) |
 | `SCAN_INTERVAL_MIN` | optioneel | Min. minuten tussen scans per site (standaard 1440 = 24 uur) |
 | `ANTHROPIC_API_KEY` | optioneel | AI-actieplan per site |
+| `PAGESPEED_API_KEY` | optioneel | Ruimere quota voor de PageSpeed-check (gratis via Google Cloud Console → "PageSpeed Insights API" aanzetten → API-key aanmaken) |

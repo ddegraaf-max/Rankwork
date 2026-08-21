@@ -23,7 +23,30 @@
     <li class="<%= sc.robots ? 'ok' : 'nok' %>"><span class="dot"></span> robots.txt</li>
     <li class="<%= sc.sitemap ? 'ok' : 'nok' %>"><span class="dot"></span> sitemap.xml
       <% if (sc.sitemap) { %><span class="mono klein">(<%= sc.sitemapAantal %> URL's)</span><% } %></li>
-    <li class="<%= sc.favicon ? 'ok' : 'nok' %>"><span class="dot"></span> favicon</li>
+    <li class="<%= sc.favicon ? 'ok' : 'nok' %>"><span class="dot"></span> favicon
+      <% if (sc.faviconVia) { %><span class="mono klein">(via link-tag)</span><% } %></li>
+    <li class="<%= sc.catchAll ? 'nok' : 'ok' %>"><span class="dot"></span> Echte 404-pagina
+      <% if (sc.catchAll) { %><span class="mono klein">(elk pad geeft een 200 terug)</span><% } %></li>
+    <% if (sc.httpsRedirect !== undefined) { %>
+      <li class="<%= sc.httpsRedirect ? 'ok' : 'nok' %>"><span class="dot"></span> http → https redirect</li>
+    <% } %>
+    <% if (sc.wwwRedirect !== undefined) { %>
+      <li class="<%= sc.wwwRedirect ? 'ok' : 'nok' %>"><span class="dot"></span> www-consistentie
+        <span class="mono klein">(<%= sc.wwwVariant %><%= sc.wwwVariantOnbereikbaar ? ' onbereikbaar' : '' %>)</span></li>
+    <% } %>
+    <% if (sc.dubbeleTitles !== undefined) { %>
+      <li class="<%= sc.dubbeleTitles ? 'nok' : 'ok' %>"><span class="dot"></span> Unieke page titles
+        <% if (sc.dubbeleTitles) { %><span class="mono klein">(<%= sc.dubbeleTitles %> pagina's met dezelfde title)</span><% } %></li>
+      <li class="<%= sc.dubbeleDescriptions ? 'nok' : 'ok' %>"><span class="dot"></span> Unieke descriptions
+        <% if (sc.dubbeleDescriptions) { %><span class="mono klein">(<%= sc.dubbeleDescriptions %> pagina's met dezelfde description)</span><% } %></li>
+    <% } %>
+    <% const psi = sc.pagespeed; %>
+    <% if (psi && !psi.fout && psi.score != null) { %>
+      <li class="<%= psi.score >= 50 ? 'ok' : 'nok' %>"><span class="dot"></span> PageSpeed <%= psi.score %>/100
+        <span class="mono klein">(<%= psi.bron %><% if (psi.lcpMs) { %> · LCP <%= (psi.lcpMs / 1000).toFixed(1) %>s<% } %><% if (psi.cls != null) { %> · CLS <%= psi.cls %><% } %><% if (psi.inp) { %> · INP <%= psi.inp %> ms<% } %>)</span></li>
+    <% } else if (psi && psi.fout) { %>
+      <li><span class="dot"></span> PageSpeed niet gemeten <span class="mono klein">(<%= psi.fout %>)</span></li>
+    <% } %>
     <% if (sc.robotsBlokkeertAlles) { %>
       <li class="nok"><span class="dot"></span> ⚠ robots.txt blokkeert de hele site!</li>
     <% } %>
