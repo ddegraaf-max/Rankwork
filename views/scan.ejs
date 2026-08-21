@@ -77,9 +77,9 @@
     <% } %>
     <% if (sc.dubbeleTitles !== undefined) { %>
       <li class="<%= sc.dubbeleTitles ? 'nok' : 'ok' %>"><span class="dot"></span> Unieke page titles
-        <% if (sc.dubbeleTitles) { %><span class="mono klein">(<%= sc.dubbeleTitles %> pagina's met dezelfde title)</span><% } %></li>
+        <% if (sc.dubbeleTitles) { %><span class="mono klein">(<%= sc.dubbeleTitles %> pagina's met dezelfde title<%= sc.dubbeleTitlesLijst && sc.dubbeleTitlesLijst.length ? ': "' + sc.dubbeleTitlesLijst.join('" · "') + '"' : '' %>)</span><% } %></li>
       <li class="<%= sc.dubbeleDescriptions ? 'nok' : 'ok' %>"><span class="dot"></span> Unieke descriptions
-        <% if (sc.dubbeleDescriptions) { %><span class="mono klein">(<%= sc.dubbeleDescriptions %> pagina's met dezelfde description)</span><% } %></li>
+        <% if (sc.dubbeleDescriptions) { %><span class="mono klein">(<%= sc.dubbeleDescriptions %> pagina's met dezelfde description<%= sc.dubbeleDescriptionsLijst && sc.dubbeleDescriptionsLijst.length ? ': "' + sc.dubbeleDescriptionsLijst.join('" · "') + '"' : '' %>)</span><% } %></li>
     <% } %>
     <% const psi = sc.pagespeed; %>
     <% if (psi && !psi.fout && psi.score != null) { %>
