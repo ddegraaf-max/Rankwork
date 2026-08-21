@@ -56,3 +56,4 @@ DATABASE_URL=postgres://... node server.js
 | `SCAN_INTERVAL_MIN` | optioneel | Min. minuten tussen scans per site (standaard 1440 = 24 uur) |
 | `ANTHROPIC_API_KEY` | optioneel | AI-actieplan per site |
 | `PAGESPEED_API_KEY` | optioneel | Ruimere quota voor de PageSpeed-check (gratis via Google Cloud Console → "PageSpeed Insights API" aanzetten → API-key aanmaken) |
+| `APP_URL` | optioneel | Publieke URL van je RankWerk-app (bijv. `https://rankwerk.up.railway.app`); zet een "Open ops room"-knop in het dagrapport |
