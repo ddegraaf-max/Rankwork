@@ -5,7 +5,7 @@ const session = require('express-session');
 const { pool, init } = require('./db');
 const { scanSite, normalizeBase } = require('./lib/scanner');
 const { verwerkTaken } = require('./lib/taken');
-const { seoAdvies, aiBeschikbaar } = require('./lib/ai');
+const { seoAdvies, verwerkActieplan, aiBeschikbaar } = require('./lib/ai');
 const auth = require('./lib/auth');
 const planner = require('./lib/planner');
 
@@ -87,7 +87,7 @@ app.get('/sites/:id', async (req, res) => {
     `SELECT * FROM taken WHERE site_id = $1
      ORDER BY klaar ASC, CASE prioriteit WHEN 'hoog' THEN 0 WHEN 'middel' THEN 1 ELSE 2 END, id DESC`,
     [site.id]);
-  res.render('site', { site, scans, taken, advies: null });
+  res.render('site', { site, scans, taken, advies: site.ai_plan || null });
 });
 
 // ---------- Scan starten ----------
@@ -113,6 +113,7 @@ app.post('/sites/:id/scan', async (req, res) => {
       }
       // Taken bijwerken: upsert per check_id, geslaagde checks automatisch afvinken
       await verwerkTaken(site.id, result);
+      await verwerkActieplan(site, result).catch(e => console.error('AI-actieplanfout:', e.message));
     } catch (e) {
       console.error('Scanfout:', e);
       await pool.query(`UPDATE scans SET status = 'fout', fout = $1, finished_at = now() WHERE id = $2`,

@@ -15,6 +15,7 @@ async function init() {
       naam TEXT NOT NULL,
       url TEXT NOT NULL UNIQUE,
       zoekwoorden TEXT DEFAULT '',
+      ai_plan TEXT DEFAULT '',
       created_at TIMESTAMPTZ DEFAULT now()
     );
 
@@ -66,6 +67,7 @@ async function init() {
       UNIQUE (site_id, titel)
     );
   `);
+  await pool.query(`ALTER TABLE sites ADD COLUMN IF NOT EXISTS ai_plan TEXT DEFAULT ''`);
   // Migratie: stabiele check_id per taak (voor upsert + auto-afvinken bij herscan)
   await pool.query(`
     ALTER TABLE taken ADD COLUMN IF NOT EXISTS check_id TEXT;

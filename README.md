@@ -8,7 +8,7 @@ SEO-controlekamer voor al je sites. Voeg sites toe, scan ze automatisch, krijg e
 - **Site-niveau**: HTTPS, robots.txt, sitemap.xml, favicon, en waarschuwt als robots.txt de hele site blokkeert.
 - **Score 0–100** per pagina en per site, met kleurcodering (groen/oranje/rood).
 - **Takenlijst**: elke scan genereert automatisch taken met prioriteit; afvinken en eigen taken toevoegen kan.
-- **AI-actieplan** (optioneel): met een `ANTHROPIC_API_KEY` krijg je per site een concreet Nederlands actieplan op basis van de laatste scan en je zoekwoorden.
+- **AI-actieplan** (optioneel): met een `ANTHROPIC_API_KEY` maakt Claude na elke scan automatisch een concreet Nederlands actieplan en zet het uitvoerbare werk als AI-taken klaar.
 
 ## Installatie (Railway)
 
