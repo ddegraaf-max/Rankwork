@@ -72,7 +72,7 @@
         <tr>
           <td class="mono"><%= new Date(sc.created_at).toLocaleString('nl-NL') %></td>
           <td>
-            <% if (sc.status === 'bezig') { %><span class="badge pulse">bezig… (ververs de pagina)</span>
+            <% if (sc.status === 'bezig') { %><span class="badge pulse">bezig… (ververst vanzelf)</span>
             <% } else if (sc.status === 'fout') { %><span class="badge rood-badge" title="<%= sc.fout %>">fout</span>
             <% } else { %><span class="badge groen-badge">klaar</span><% } %>
           </td>
@@ -90,5 +90,23 @@
     <button type="submit" class="knop verwijder">Site verwijderen</button>
   </form>
 </section>
+
+<% const bezigScan = scans.find(s => s.status === 'bezig'); %>
+<% if (bezigScan) { %>
+<script>
+  // Er loopt een scan: elke 3 s de status peilen en de pagina verversen zodra hij klaar is
+  (function () {
+    let pogingen = 0;
+    const kijk = setInterval(async () => {
+      if (++pogingen > 200) return clearInterval(kijk); // na ~10 min stoppen
+      try {
+        const r = await fetch('/api/scans/<%= bezigScan.id %>/status');
+        const { status } = await r.json();
+        if (status !== 'bezig') { clearInterval(kijk); location.reload(); }
+      } catch { /* netwerkfout — volgende poging */ }
+    }, 3000);
+  })();
+</script>
+<% } %>
 
 <%- include('partials/footer') %>

@@ -126,6 +126,12 @@ app.post('/sites/:id/scan', async (req, res) => {
   res.redirect('/sites/' + site.id + '#scans');
 });
 
+// Scanstatus — voor het automatisch verversen van de site-/scanpagina zolang een scan loopt
+app.get('/api/scans/:id/status', async (req, res) => {
+  const { rows: [scan] } = await pool.query('SELECT status FROM scans WHERE id = $1', [req.params.id]);
+  res.json({ status: scan ? scan.status : 'weg' });
+});
+
 // ---------- Scanresultaat ----------
 app.get('/scans/:id', async (req, res) => {
   const { rows: [scan] } = await pool.query('SELECT * FROM scans WHERE id = $1', [req.params.id]);

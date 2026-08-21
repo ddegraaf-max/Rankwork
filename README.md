@@ -31,7 +31,7 @@ DATABASE_URL=postgres://... node server.js
 ## Let op
 
 - Er zit **geen login** op deze tool. Zet hem achter een privé-URL of voeg basic auth toe voordat je hem publiek deployt.
-- Een scan draait op de achtergrond; ververs de sitepagina na ±30 seconden.
+- Een scan draait op de achtergrond; de site- en scanpagina verversen vanzelf zodra hij klaar is.
 
 ## Beveiliging & planner (v2)
 

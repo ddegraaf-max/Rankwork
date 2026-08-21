@@ -15,6 +15,25 @@
   </div>
 </section>
 
+<% if (scan.status === 'bezig') { %>
+<section class="paneel">
+  <span class="badge pulse">Scan loopt nog… deze pagina ververst vanzelf</span>
+</section>
+<script>
+  (function () {
+    let pogingen = 0;
+    const kijk = setInterval(async () => {
+      if (++pogingen > 200) return clearInterval(kijk);
+      try {
+        const r = await fetch('/api/scans/<%= scan.id %>/status');
+        const { status } = await r.json();
+        if (status !== 'bezig') { clearInterval(kijk); location.reload(); }
+      } catch { /* netwerkfout — volgende poging */ }
+    }, 3000);
+  })();
+</script>
+<% } %>
+
 <% const sc = scan.site_checks || {}; %>
 <section class="paneel">
   <h2 class="paneel-titel">Site-niveau</h2>
