@@ -38,7 +38,7 @@ DATABASE_URL=postgres://... node server.js
 
 **24/7 planner** (start automatisch mee):
 - Elke 60 seconden: uptime-check op al je sites (online-indicator + 24u-percentage op het dashboard).
-- Doorlopende scanrotatie: elke site wordt minimaal 1× per uur volledig gescand (`SCAN_INTERVAL_MIN` om aan te passen); nieuwe problemen worden direct taken.
+- Doorlopende scanrotatie: elke site wordt maximaal 1× per 24 uur volledig gescand (`SCAN_INTERVAL_MIN` om aan te passen); nieuwe problemen worden direct taken.
 - Dagrapport per e-mail om 7:00 (`RAPPORT_UUR`): scores met verschil t.o.v. vorige scan, open taken, uptime. Vereist `RESEND_API_KEY`, `RAPPORT_EMAIL` en optioneel `RAPPORT_VAN` (geverifieerd Resend-domein).
 
 **Alle environment variables**
@@ -51,5 +51,5 @@ DATABASE_URL=postgres://... node server.js
 | `RAPPORT_EMAIL` | voor rapport | Ontvanger van het dagrapport |
 | `RAPPORT_VAN` | optioneel | Afzender, bijv. `RankWerk <rapport@jouwdomein.nl>` |
 | `RAPPORT_UUR` | optioneel | Uur van verzending (standaard 7) |
-| `SCAN_INTERVAL_MIN` | optioneel | Min. minuten tussen scans per site (standaard 60) |
+| `SCAN_INTERVAL_MIN` | optioneel | Min. minuten tussen scans per site (standaard 1440 = 24 uur) |
 | `ANTHROPIC_API_KEY` | optioneel | AI-actieplan per site |
