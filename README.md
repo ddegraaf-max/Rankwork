@@ -9,7 +9,8 @@ SEO-controlekamer voor al je sites. Voeg sites toe, scan ze automatisch, krijg e
 - **Core Web Vitals**: per scan wordt de homepage door de Google PageSpeed Insights API gehaald (mobiel): performance-score, LCP, CLS en INP — velddata (CrUX) als die er is, anders labdata. Werkt zonder key; met een gratis `PAGESPEED_API_KEY` is de quota ruimer.
 - **Score 0–100** per pagina en per site, met kleurcodering (groen/oranje/rood).
 - **Takenlijst**: elke scan genereert automatisch taken met prioriteit; afvinken en eigen taken toevoegen kan.
-- **AI-actieplan** (optioneel): met een `ANTHROPIC_API_KEY` maakt Claude na elke scan automatisch een concreet Nederlands actieplan en zet het uitvoerbare werk als AI-taken klaar.
+- **AI-actieplan** (optioneel): met een `ANTHROPIC_API_KEY` maakt Claude na elke scan automatisch een concreet Nederlands actieplan en zet het uitvoerbare werk als AI-taken klaar. De sitepagina toont live wanneer het advies wordt gemaakt en ververst vanzelf zodra het klaar is.
+- **Export naar Claude/AI**: elk scanresultaat is te downloaden als Markdown-rapport of JSON, of met één klik te kopiëren — klaar om in claude.ai te plakken voor verdere analyse.
 
 ## Installatie (Railway)
 

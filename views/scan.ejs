@@ -8,12 +8,34 @@
   <div>
     <h1>Scanresultaat</h1>
     <span class="mono url"><%= new Date(scan.created_at).toLocaleString('nl-NL') %> · <%= pages.length %> pagina's</span>
+    <% if (scan.status === 'klaar') { %>
+      <div class="kop-acties">
+        <button type="button" class="knop secundair" id="kopieer-knop">⧉ Kopieer voor Claude/AI</button>
+        <a class="knop secundair" href="/scans/<%= scan.id %>/rapport.md">⬇ Rapport (md)</a>
+        <a class="knop secundair" href="/scans/<%= scan.id %>/rapport.json">⬇ JSON</a>
+      </div>
+    <% } %>
   </div>
   <div class="score-blok groot-blok <%= scoreKleur(scan.score) %>">
     <span class="score-getal"><%= scan.score ?? "—" %></span>
     <span class="score-label">sitescore</span>
   </div>
 </section>
+
+<% if (scan.status === 'klaar') { %>
+<script>
+  // Haalt het Markdown-rapport op en zet het op het klembord — klaar om in Claude te plakken
+  document.getElementById('kopieer-knop').addEventListener('click', async (e) => {
+    const knop = e.currentTarget;
+    try {
+      const md = await (await fetch('/scans/<%= scan.id %>/rapport.md')).text();
+      await navigator.clipboard.writeText(md);
+      knop.textContent = '✓ Gekopieerd — plak in Claude';
+    } catch { knop.textContent = 'Kopiëren mislukt — gebruik ⬇ Rapport'; }
+    setTimeout(() => { knop.textContent = '⧉ Kopieer voor Claude/AI'; }, 4000);
+  });
+</script>
+<% } %>
 
 <% if (scan.status === 'bezig') { %>
 <section class="paneel">

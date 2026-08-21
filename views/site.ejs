@@ -12,9 +12,13 @@
       <button type="submit" class="knop groot">▶ Scan starten</button>
     </form>
     <% if (aiBeschikbaar && scans.some(s => s.status === 'klaar')) { %>
-      <form method="POST" action="/sites/<%= site.id %>/advies">
-        <button type="submit" class="knop secundair">✦ AI-advies</button>
-      </form>
+      <% if (site.ai_status === 'bezig') { %>
+        <button type="button" class="knop secundair" disabled>✦ AI-advies bezig…</button>
+      <% } else { %>
+        <form method="POST" action="/sites/<%= site.id %>/advies">
+          <button type="submit" class="knop secundair">✦ AI-advies</button>
+        </form>
+      <% } %>
     <% } %>
   </div>
 </section>
@@ -27,9 +31,21 @@
   </form>
 </section>
 
-<% if (advies) { %>
-<section class="paneel advies">
-  <h2 class="paneel-titel">✦ AI-actieplan klaar</h2>
+<% if (site.ai_status === 'bezig') { %>
+<section class="paneel advies" id="advies">
+  <h2 class="paneel-titel">✦ AI-advies wordt gemaakt…</h2>
+  <span class="badge pulse">De scandata wordt verzameld en geanalyseerd — dit duurt ± een halve minuut; de pagina ververst vanzelf</span>
+</section>
+<% } else if (site.ai_status === 'fout') { %>
+<section class="paneel advies" id="advies">
+  <h2 class="paneel-titel">✦ AI-advies mislukt</h2>
+  <pre class="advies-tekst">Er ging iets mis bij het maken van het actieplan. Probeer het opnieuw met de knop hierboven.</pre>
+</section>
+<% } else if (advies) { %>
+<section class="paneel advies" id="advies">
+  <h2 class="paneel-titel">✦ AI-actieplan
+    <% if (site.ai_plan_op) { %><span class="mono klein">bijgewerkt <%= new Date(site.ai_plan_op).toLocaleString('nl-NL') %></span><% } %>
+  </h2>
   <pre class="advies-tekst"><%= advies %></pre>
 </section>
 <% } %>
@@ -92,17 +108,21 @@
 </section>
 
 <% const bezigScan = scans.find(s => s.status === 'bezig'); %>
-<% if (bezigScan) { %>
+<% const aiBezig = site.ai_status === 'bezig'; %>
+<% if (bezigScan || aiBezig) { %>
 <script>
-  // Er loopt een scan: elke 3 s de status peilen en de pagina verversen zodra hij klaar is
+  // Er loopt werk (scan en/of AI-advies): elke 3 s de status peilen en verversen zodra iets klaar is
   (function () {
+    const begin = { scan: <%= bezigScan ? 'true' : 'false' %>, ai: <%= aiBezig ? 'true' : 'false' %> };
     let pogingen = 0;
     const kijk = setInterval(async () => {
       if (++pogingen > 200) return clearInterval(kijk); // na ~10 min stoppen
       try {
-        const r = await fetch('/api/scans/<%= bezigScan.id %>/status');
-        const { status } = await r.json();
-        if (status !== 'bezig') { clearInterval(kijk); location.reload(); }
+        const r = await fetch('/api/sites/<%= site.id %>/status');
+        const d = await r.json();
+        if ((begin.scan && d.scan !== 'bezig') || (begin.ai && d.ai !== 'bezig')) {
+          clearInterval(kijk); location.reload();
+        }
       } catch { /* netwerkfout — volgende poging */ }
     }, 3000);
   })();

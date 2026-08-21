@@ -68,6 +68,11 @@ async function init() {
     );
   `);
   await pool.query(`ALTER TABLE sites ADD COLUMN IF NOT EXISTS ai_plan TEXT DEFAULT ''`);
+  // Migratie: zichtbare status + tijdstip van het AI-actieplan ('' | bezig | klaar | fout)
+  await pool.query(`
+    ALTER TABLE sites ADD COLUMN IF NOT EXISTS ai_status TEXT DEFAULT '';
+    ALTER TABLE sites ADD COLUMN IF NOT EXISTS ai_plan_op TIMESTAMPTZ;
+  `);
   // Migratie: stabiele check_id per taak (voor upsert + auto-afvinken bij herscan)
   await pool.query(`
     ALTER TABLE taken ADD COLUMN IF NOT EXISTS check_id TEXT;

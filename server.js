@@ -6,7 +6,8 @@ const session = require('express-session');
 const { pool, init } = require('./db');
 const { scanSite, normalizeBase } = require('./lib/scanner');
 const { verwerkTaken } = require('./lib/taken');
-const { seoAdvies, verwerkActieplan, aiBeschikbaar } = require('./lib/ai');
+const { verwerkActieplan, aiBeschikbaar } = require('./lib/ai');
+const { scanNaarMarkdown, bestandsnaam } = require('./lib/export');
 const auth = require('./lib/auth');
 const planner = require('./lib/planner');
 
@@ -104,6 +105,11 @@ app.post('/sites/:id/scan', async (req, res) => {
   (async () => {
     try {
       const result = await scanSite(site.url);
+      // AI-status alvast op 'bezig' vóór de scan op 'klaar' gaat, zodat de sitepagina
+      // na de automatische verversing meteen toont dat het actieplan wordt gemaakt
+      if (aiBeschikbaar) {
+        await pool.query(`UPDATE sites SET ai_status = 'bezig' WHERE id = $1`, [site.id]);
+      }
       await pool.query(
         `UPDATE scans SET status = 'klaar', score = $1, site_checks = $2, finished_at = now() WHERE id = $3`,
         [result.score, JSON.stringify(result.siteChecks), scan.id]);
@@ -126,10 +132,19 @@ app.post('/sites/:id/scan', async (req, res) => {
   res.redirect('/sites/' + site.id + '#scans');
 });
 
-// Scanstatus — voor het automatisch verversen van de site-/scanpagina zolang een scan loopt
+// Scanstatus — voor het automatisch verversen van de scanpagina zolang een scan loopt
 app.get('/api/scans/:id/status', async (req, res) => {
   const { rows: [scan] } = await pool.query('SELECT status FROM scans WHERE id = $1', [req.params.id]);
   res.json({ status: scan ? scan.status : 'weg' });
+});
+
+// Sitestatus — scan- én AI-status in één keer, voor het auto-verversen van de sitepagina
+app.get('/api/sites/:id/status', async (req, res) => {
+  const { rows: [rij] } = await pool.query(
+    `SELECT s.ai_status AS ai,
+            (SELECT status FROM scans WHERE site_id = s.id ORDER BY id DESC LIMIT 1) AS scan
+     FROM sites s WHERE s.id = $1`, [req.params.id]);
+  res.json(rij || { scan: null, ai: null });
 });
 
 // ---------- Scanresultaat ----------
@@ -160,6 +175,7 @@ app.post('/sites/:id/taken', async (req, res) => {
 });
 
 // ---------- AI-advies ----------
+// Draait net als de scan op de achtergrond; de sitepagina toont de status en ververst vanzelf
 app.post('/sites/:id/advies', async (req, res) => {
   const { rows: [site] } = await pool.query('SELECT * FROM sites WHERE id = $1', [req.params.id]);
   if (!site) return res.redirect('/');
@@ -167,22 +183,57 @@ app.post('/sites/:id/advies', async (req, res) => {
     `SELECT * FROM scans WHERE site_id = $1 AND status = 'klaar' ORDER BY id DESC LIMIT 1`, [site.id]);
   if (!scan) return res.redirect('/sites/' + site.id);
 
-  const { rows: pages } = await pool.query('SELECT * FROM scan_pages WHERE scan_id = $1', [scan.id]);
-  let advies = null, adviesFout = null;
-  try {
-    advies = await seoAdvies(site, {
-      score: scan.score, siteChecks: scan.site_checks,
-      pages: pages.map(p => ({ url: p.url, score: p.score, title: '', checks: p.checks }))
-    });
-  } catch (e) { adviesFout = String(e.message || e); }
+  await pool.query(`UPDATE sites SET ai_status = 'bezig' WHERE id = $1`, [site.id]);
+  (async () => {
+    try {
+      const { rows: pages } = await pool.query('SELECT * FROM scan_pages WHERE scan_id = $1', [scan.id]);
+      await verwerkActieplan(site, {
+        score: scan.score, siteChecks: scan.site_checks,
+        pages: pages.map(p => ({ url: p.url, score: p.score, title: '', checks: p.checks }))
+      });
+    } catch (e) { console.error('AI-adviesfout:', e.message); }
+  })();
 
-  const { rows: scans } = await pool.query(
-    'SELECT * FROM scans WHERE site_id = $1 ORDER BY id DESC LIMIT 20', [site.id]);
+  res.redirect('/sites/' + site.id + '#advies');
+});
+
+// ---------- Export: scanrapport downloaden of naar Claude/AI kopiëren ----------
+async function laadScanExport(scanId) {
+  const { rows: [scan] } = await pool.query(
+    `SELECT * FROM scans WHERE id = $1 AND status = 'klaar'`, [scanId]);
+  if (!scan) return null;
+  const { rows: [site] } = await pool.query('SELECT * FROM sites WHERE id = $1', [scan.site_id]);
+  const { rows: pages } = await pool.query(
+    'SELECT * FROM scan_pages WHERE scan_id = $1 ORDER BY score ASC', [scan.id]);
   const { rows: taken } = await pool.query(
-    `SELECT * FROM taken WHERE site_id = $1
-     ORDER BY klaar ASC, CASE prioriteit WHEN 'hoog' THEN 0 WHEN 'middel' THEN 1 ELSE 2 END, id DESC`,
-    [site.id]);
-  res.render('site', { site, scans, taken, advies: advies || adviesFout });
+    `SELECT * FROM taken WHERE site_id = $1 AND NOT klaar
+     ORDER BY CASE prioriteit WHEN 'hoog' THEN 0 WHEN 'middel' THEN 1 ELSE 2 END, id DESC`,
+    [scan.site_id]);
+  return { scan, site, pages, taken };
+}
+
+app.get('/scans/:id/rapport.md', async (req, res) => {
+  const data = await laadScanExport(req.params.id);
+  if (!data) return res.redirect('/');
+  res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+  res.setHeader('Content-Disposition',
+    `attachment; filename="${bestandsnaam(data.site, data.scan, 'md')}"`);
+  res.send(scanNaarMarkdown(data.site, data.scan, data.pages, data.taken));
+});
+
+app.get('/scans/:id/rapport.json', async (req, res) => {
+  const data = await laadScanExport(req.params.id);
+  if (!data) return res.redirect('/');
+  res.setHeader('Content-Disposition',
+    `attachment; filename="${bestandsnaam(data.site, data.scan, 'json')}"`);
+  res.json({
+    site: { naam: data.site.naam, url: data.site.url, zoekwoorden: data.site.zoekwoorden },
+    scan: { id: data.scan.id, datum: data.scan.created_at, score: data.scan.score,
+            siteChecks: data.scan.site_checks },
+    paginas: data.pages.map(p => ({ url: p.url, status: p.status_code, ms: p.response_ms,
+                                    score: p.score, checks: p.checks })),
+    openTaken: data.taken.map(t => ({ prioriteit: t.prioriteit, titel: t.titel, detail: t.detail }))
+  });
 });
 
 // ---------- Ops room ----------

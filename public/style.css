@@ -79,6 +79,9 @@ body {
   padding: .7rem 1.2rem; cursor: pointer; text-transform: uppercase; font-size: .8rem;
 }
 .knop:hover { filter: brightness(1.1); }
+a.knop { display: inline-block; text-decoration: none; }
+.knop:disabled { opacity: .55; cursor: default; }
+.site-kop > div > .kop-acties { margin-top: .7rem; }
 .knop.groot { padding: .85rem 1.5rem; font-size: .9rem; }
 .knop.secundair { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
 .knop.verwijder { background: transparent; color: var(--rood); border: 1px solid var(--rood); }
