@@ -20,6 +20,11 @@
         </form>
       <% } %>
     <% } %>
+    <% const laatsteKlaar = scans.find(s => s.status === 'klaar'); %>
+    <% if (laatsteKlaar) { %>
+      <button type="button" class="knop secundair" id="kopieer-knop">⧉ Kopieer voor Claude</button>
+      <a class="knop secundair" href="/scans/<%= laatsteKlaar.id %>/rapport.md">⬇ Rapport</a>
+    <% } %>
   </div>
 </section>
 
@@ -106,6 +111,21 @@
     <button type="submit" class="knop verwijder">Site verwijderen</button>
   </form>
 </section>
+
+<% if (laatsteKlaar) { %>
+<script>
+  // Haalt het rapport van de laatste scan op en zet het op het klembord — klaar om in Claude te plakken
+  document.getElementById('kopieer-knop').addEventListener('click', async (e) => {
+    const knop = e.currentTarget;
+    try {
+      const md = await (await fetch('/scans/<%= laatsteKlaar.id %>/rapport.md')).text();
+      await navigator.clipboard.writeText(md);
+      knop.textContent = '✓ Gekopieerd — plak in Claude';
+    } catch { knop.textContent = 'Kopiëren mislukt — gebruik ⬇ Rapport'; }
+    setTimeout(() => { knop.textContent = '⧉ Kopieer voor Claude'; }, 4000);
+  });
+</script>
+<% } %>
 
 <% const bezigScan = scans.find(s => s.status === 'bezig'); %>
 <% const aiBezig = site.ai_status === 'bezig'; %>
