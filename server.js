@@ -1,6 +1,7 @@
 // server.js — RankWerk: SEO-dashboard voor al je sites
 const express = require('express');
 const path = require('path');
+const { version } = require('./package.json');
 const session = require('express-session');
 const { pool, init } = require('./db');
 const { scanSite, normalizeBase } = require('./lib/scanner');
@@ -14,6 +15,7 @@ const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.locals.appVersie = version;
 app.set('trust proxy', 1); // Railway zit achter een proxy
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));

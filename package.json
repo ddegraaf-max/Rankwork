@@ -1,6 +1,6 @@
 {
   "name": "rankwerk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "SEO-dashboard voor al je sites: scannen, scoren, verbeteren",
   "main": "server.js",
   "scripts": {
